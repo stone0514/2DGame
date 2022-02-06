@@ -17,6 +17,7 @@ func (*mySceane) Preload() {
 	engo.Files.Load("./assets/character/Adventurer/adventurer-Sheet.png")
 	engo.Files.Load("./assets/character/Adventurer/adventurer-idle-00.png")
 	engo.Files.Load("./assets/tileSet/world/Asset_01/pixel_platform_01_tileset_final.png")
+	engo.Files.Load("./assets/tileSet/world/Background/clouds.png")
 	common.SetBackground(color.RGBA{210, 180, 140, 1})
 }
 
