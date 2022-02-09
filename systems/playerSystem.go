@@ -2,6 +2,8 @@ package systems
 
 import (
 	"github.com/EngoEngine/ecs"
+	"github.com/EngoEngine/engo"
+	"github.com/EngoEngine/engo/common"
 )
 
 const (
@@ -12,7 +14,7 @@ const (
 	ExtraSizeX            = 4
 )
 
-var playerFile = "./assets/character/Adventure/adventure-Sheet.png"
+var playerFile = "./characters/Adventurer/adventurer-Sheet.png"
 
 type Player struct {
 	ecs.BasicEntity
@@ -22,14 +24,13 @@ type Player struct {
 	LeftPositionX      float32
 	RightPositionX     float32
 	cameraMoveDistance int
-	spriteSheet        *common.SpriteSheet
+	spritesheet        *common.Spritesheet
 	useCell            int
 	jumpCount          int
 	jumpCount2Step     int
 	topCount           int
 	bottomCount        int
 	ifJumping          bool
-	ifOnPipe           bool
 	ifFalling          bool
 }
 
@@ -40,23 +41,23 @@ type PlayerSystem struct {
 
 func (ps *PlayerSystem) New(w *ecs.World) {
 	ps.world = w
-	player := Player{BasicEntity, ecs.NewBasic()}
+	player := Player{BasicEntity: ecs.NewBasic()}
 
 	PsPositionX := float32(0)
-	PsPositionY := engo.WindowHeigt() - CellHeight16*6
+	PsPositionY := engo.WindowHeight() - CellHeight16*6
 
-	playerSpaceComponent = common.SpaceComponent{
+	player.SpaceComponent = common.SpaceComponent{
 		Position: engo.Point{X: PsPositionX, Y: PsPositionY},
 		Width:    30,
 		Height:   30,
 	}
 
-	player.SpriteSheet = common.NewSpriteSheetWithBorderFromFile(playerFile, 32, 32, 0, 0)
+	player.spritesheet = common.NewSpritesheetWithBorderFromFile(playerFile, 32, 32, 0, 0)
 	player.RenderComponent = common.RenderComponent{
-		Drawable: player.spriteSheetCell(PlayerSpriteSheetCell),
+		Drawable: player.spritesheet.Cell(PlayerSpriteSheetCell),
 		Scale:    engo.Point{X: 1, Y: 1},
 	}
-	Player.RenderComponent.SetZIndex(5)
+	player.RenderComponent.SetZIndex(5)
 
 	ps.playerEntity = &player
 
@@ -64,12 +65,11 @@ func (ps *PlayerSystem) New(w *ecs.World) {
 	ps.playerEntity.LeftPositionX = PsPositionX + float32(ExtraSizeX)
 	ps.playerEntity.RightPositionX = PsPositionX + CellWidth32 - float32(ExtraSizeX)
 	ps.playerEntity.ifFalling = false
-	ps.playerEntity.ifOnPipe = false
 	ps.playerEntity.cameraMoveDistance = 0
 	ps.playerEntity.topCount = 1 + MaxCount/2
 	ps.playerEntity.bottomCount = 0
 
-	for _, system := range ps.world.System() {
+	for _, system := range ps.world.Systems() {
 		switch sys := system.(type) {
 		case *common.RenderSystem:
 			sys.Add(&player.BasicEntity, &player.RenderComponent, &player.SpaceComponent)
@@ -79,6 +79,39 @@ func (ps *PlayerSystem) New(w *ecs.World) {
 	common.CameraBounds = engo.AABB{
 		Min: engo.Point{X: 0, Y: 0},
 		Max: engo.Point{X: 3200, Y: 300},
+	}
+}
+
+func (ps *PlayerSystem) Update(dt float32) {
+
+	if ps.playerEntity.SpaceComponent.Position.Y == ps.playerEntity.playerPositionY {
+		ps.playerEntity.RenderComponent.Drawable = ps.playerEntity.spritesheet.Cell(PlayerSpriteSheetCell)
+	}
+
+	if int(ps.playerEntity.LeftPositionX) >= (TileNum-GoalTileNum+2)*CellWidth16 {
+		ps.Remove(ps.playerEntity.BasicEntity)
+	}
+
+	if engo.Input.Button("MoveRight").Down() {
+		if int(ps.playerEntity.SpaceComponent.Position.X) < ps.playerEntity.cameraMoveDistance+int(engo.WindowWidth())/2 {
+			ps.playerEntity.SpaceComponent.Position.X += MoveDistance
+			ps.playerEntity.LeftPositionX += MoveDistance
+			ps.playerEntity.RightPositionX += MoveDistance
+		} else {
+			if int(ps.playerEntity.SpaceComponent.Position.X) < int(engo.WindowWidth())-CellWidth32 {
+				ps.playerEntity.SpaceComponent.Position.X += MoveDistance
+				ps.playerEntity.LeftPositionX += MoveDistance
+				ps.playerEntity.RightPositionX += MoveDistance
+			}
+			if int(ps.playerEntity.SpaceComponent.Position.X) < TileNum*CellWidth16-int(engo.WindowWidth()/2) {
+				engo.Mailbox.Dispatch(common.CameraMessage{
+					Axis:        common.XAxis,
+					Value:       MoveDistance,
+					Incremental: true,
+				})
+			}
+			ps.playerEntity.cameraMoveDistance += MoveDistance
+		}
 	}
 
 	if engo.Input.Button("Jump").JustPressed() {
@@ -95,41 +128,42 @@ func (ps *PlayerSystem) New(w *ecs.World) {
 		if ps.playerEntity.jumpCount == 0 {
 			ps.playerEntity.jumpCount2Step = 0
 			ps.playerEntity.jumpCount = 1
-			ps.playerEntity.ifJumpint = true
+			ps.playerEntity.ifJumping = true
 		}
-
-		if ps.playerEntity.ifOnPipe {
-			ps.playerEntity.bottomCount = 1 + MaxCount + ps.playerEntity.jumpCount2Step + 8
-		} else {
-			ps.playerEntity.bottomCount = 1 + MaxCount + ps.playerEntity.jumpCount2Step
-		}
+		ps.playerEntity.bottomCount = 1 + MaxCount + ps.playerEntity.jumpCount2Step
 	}
 
 	if ps.playerEntity.jumpCount != 0 {
 		ps.playerEntity.jumpCount++
 		if ps.playerEntity.jumpCount <= ps.playerEntity.topCount {
-			ps.PlayerEntity.SpaceComponent.Position.Y -= jumpHeight
+			ps.playerEntity.SpaceComponent.Position.Y -= JumpHeight
 		} else if ps.playerEntity.jumpCount <= ps.playerEntity.bottomCount {
-			if ps.playerEntity.SpaceComponent.Position.Y == onPipePositionY {
-				if getMakingInfo(PipePoint, int(ps.playerEntity.LeftPositionX)) || getMakingInfo(PipePoint, int(ps.playerEntity.RightPositionX)) {
-					ps.playerEntity.jumpCount = 0
-					ps.playerEntity.ifJumping = false
-					ps.playerEntity.ifOnPipe = true
-				} else {
-					ps.playerEntity.SpaceComponent.Position.Y += jumpHeight
-				}
-			} else {
-				ps.playerEntity.SpaceComponent.Position.Y += jumpHeight
-			}
+			ps.playerEntity.SpaceComponent.Position.Y += JumpHeight
 		} else {
 			ps.playerEntity.jumpCount = 0
 			ps.playerEntity.ifJumping = false
+		}
+	}
 
-			if getMakingInfo(PipePoint, int(ps.playerEntity.LeftPositionX)) || getMakingInfo(PipePoint, int(ps.playerEntity.RightPositionX)) {
-				ps.playerEntity.ifOnPipe = true
-			} else {
-				ps.playerEntity.ifOnPipe = false
-			}
+	if ps.playerEntity.jumpCount == 0 {
+		if getMakingInfo(FallPoint, int(ps.playerEntity.LeftPositionX)) && getMakingInfo(FallPoint, int(ps.playerEntity.RightPositionX)) {
+			ps.playerEntity.ifFalling = true
+			ps.playerEntity.SpaceComponent.Position.Y += MoveDistance
+		}
+	}
+	if ps.playerEntity.SpaceComponent.Position.Y > engo.WindowHeight() {
+		ps.Remove(ps.playerEntity.BasicEntity)
+	}
+	if ps.playerEntity.ifFalling {
+		return
+	}
+}
+
+func (ps *PlayerSystem) Remove(ecs.BasicEntity) {
+	for _, system := range ps.world.Systems() {
+		switch sys := system.(type) {
+		case *common.RenderSystem:
+			sys.Remove(ps.playerEntity.BasicEntity)
 		}
 	}
 }
