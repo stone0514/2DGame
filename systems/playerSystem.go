@@ -10,11 +10,13 @@ const (
 	MoveDistance          = 4
 	JumpHeight            = 4
 	MaxCount              = 40
-	PlayerSpriteSheetCell = 5
-	ExtraSizeX            = 4
+	PlayerSpriteSheetCell = 4
+	ExtraSizeX            = 0
 )
 
-var playerFile = "./characters/Adventurer/adventurer-Sheet.png"
+//var playerFile = "./characters/Adventurer/adventurer-Sheet.png"
+//var playerFile = "./characters/robot.png"
+var playerFile = "./characters/robot2.png"
 
 type Player struct {
 	ecs.BasicEntity
@@ -52,12 +54,13 @@ func (ps *PlayerSystem) New(w *ecs.World) {
 		Height:   30,
 	}
 
-	player.spritesheet = common.NewSpritesheetWithBorderFromFile(playerFile, 32, 32, 0, 0)
+	//player.spritesheet = common.NewSpritesheetWithBorderFromFile(playerFile, 48, 46, 0, 0)
+	player.spritesheet = common.NewSpritesheetWithBorderFromFile(playerFile, 64, 66, 0, 0)
 	player.RenderComponent = common.RenderComponent{
 		Drawable: player.spritesheet.Cell(PlayerSpriteSheetCell),
 		Scale:    engo.Point{X: 1, Y: 1},
 	}
-	player.RenderComponent.SetZIndex(5)
+	player.RenderComponent.SetZIndex(0)
 
 	ps.playerEntity = &player
 
@@ -75,7 +78,6 @@ func (ps *PlayerSystem) New(w *ecs.World) {
 			sys.Add(&player.BasicEntity, &player.RenderComponent, &player.SpaceComponent)
 		}
 	}
-
 	common.CameraBounds = engo.AABB{
 		Min: engo.Point{X: 0, Y: 0},
 		Max: engo.Point{X: 3200, Y: 300},
@@ -103,7 +105,7 @@ func (ps *PlayerSystem) Update(dt float32) {
 				ps.playerEntity.LeftPositionX += MoveDistance
 				ps.playerEntity.RightPositionX += MoveDistance
 			}
-			if int(ps.playerEntity.SpaceComponent.Position.X) < TileNum*CellWidth16-int(engo.WindowWidth()/2) {
+			if int(ps.playerEntity.SpaceComponent.Position.X) < TileNum*CellWidth16-int(engo.WindowWidth())/2 {
 				engo.Mailbox.Dispatch(common.CameraMessage{
 					Axis:        common.XAxis,
 					Value:       MoveDistance,

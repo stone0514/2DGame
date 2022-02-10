@@ -15,8 +15,10 @@ type mySceane struct{}
 func (*mySceane) Type() string { return "myGame" }
 
 func (*mySceane) Preload() {
-	engo.Files.Load("./characters/Adventurer/adventurer-Sheet.png")
-	engo.Files.Load("./tileSet/world/grass_tileset.png")
+	engo.Files.Load("./characters/robot.png")              //48x48
+	engo.Files.Load("./characters/robot2.png")             //64x64
+	engo.Files.Load("./tileSet/world/tileSpritesheet.png") //33x33
+	engo.Files.Load("./tileSet/world/spritesheet_sample.png")
 	engo.Files.Load("./tileSet/world/Background/clouds.png")
 	common.SetBackground(color.RGBA{210, 180, 140, 1})
 }
@@ -37,8 +39,8 @@ func (*mySceane) Setup(u engo.Updater) {
 func main() {
 	opts := engo.RunOptions{
 		Title:          "Hello World",
-		Width:          480,
-		Height:         320,
+		Width:          800,
+		Height:         600,
 		StandardInputs: true,
 		NotResizable:   true,
 	}

@@ -12,39 +12,26 @@ const (
 	TileNum               = 200
 	GoalTileNum           = 10
 	AroundGoalTileNum     = 30
-	MountTileNum          = 5
-	PipeTileNum           = 1
-	CellWidth16           = 16
-	CellHeight16          = 16
+	CellWidth16           = 33
+	CellHeight16          = 33
 	CellWidth32           = 32
 	CellHeight32          = 32
 	CellHeight64          = 64
 	TileDepth             = 4
-	GroundSpriteSheetCell = 1
-	CloudSpriteSeetCell   = 0
-	MountSpriteSeetCell   = 0
-	PipeSpriteSheetCell   = 0
+	GroundSpriteSheetCell = 133 //28x27x
 )
 
 var (
-	tileFile = "./tileSet/world/grass_tileset.png"
+	tileFile = "./tileSet/world/tileSpritesheet.png"
 
 	FallPoint  []int
 	MountPoint []int
 	PipePoint  []int
 
 	//0: Not Making, 1:Making, 2:Other
-	makingFall  int
-	makingCloud int
-	makingMount int
-	makingPipe  int
+	makingFall int
 
 	addCell int
-
-	mountPositionY  float32
-	pipePositionY   float32
-	onPipePositionY float32
-	castlePositionY float32
 )
 
 type Tile struct {
