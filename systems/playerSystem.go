@@ -53,7 +53,6 @@ func (ps *PlayerSystem) New(w *ecs.World) {
 		Height:   30,
 	}
 
-	//player.spritesheet = common.NewSpritesheetWithBorderFromFile(playerFile, 48, 46, 0, 0)
 	player.spritesheet = common.NewSpritesheetWithBorderFromFile(playerFile, 64, 66, 0, 0)
 	player.RenderComponent = common.RenderComponent{
 		Drawable: player.spritesheet.Cell(PlayerSpriteSheetCell),
