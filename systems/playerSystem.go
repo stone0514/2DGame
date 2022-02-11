@@ -1,6 +1,7 @@
 package systems
 
 import (
+	//"fmt"
 	"github.com/EngoEngine/ecs"
 	"github.com/EngoEngine/engo"
 	"github.com/EngoEngine/engo/common"
@@ -10,13 +11,11 @@ const (
 	MoveDistance          = 4
 	JumpHeight            = 4
 	MaxCount              = 40
-	PlayerSpriteSheetCell = 4
+	PlayerSpriteSheetCell = 0
 	ExtraSizeX            = 0
 )
 
-//var playerFile = "./characters/Adventurer/adventurer-Sheet.png"
-//var playerFile = "./characters/robot.png"
-var playerFile = "./characters/robot2.png"
+var playerFile = "./characters/robot.png"
 
 type Player struct {
 	ecs.BasicEntity
@@ -46,7 +45,7 @@ func (ps *PlayerSystem) New(w *ecs.World) {
 	player := Player{BasicEntity: ecs.NewBasic()}
 
 	PsPositionX := float32(0)
-	PsPositionY := engo.WindowHeight() - CellHeight16*6
+	PsPositionY := engo.WindowHeight() - CellHeight33*6
 
 	player.SpaceComponent = common.SpaceComponent{
 		Position: engo.Point{X: PsPositionX, Y: PsPositionY},
@@ -87,10 +86,11 @@ func (ps *PlayerSystem) New(w *ecs.World) {
 func (ps *PlayerSystem) Update(dt float32) {
 
 	if ps.playerEntity.SpaceComponent.Position.Y == ps.playerEntity.playerPositionY {
+
 		ps.playerEntity.RenderComponent.Drawable = ps.playerEntity.spritesheet.Cell(PlayerSpriteSheetCell)
 	}
 
-	if int(ps.playerEntity.LeftPositionX) >= (TileNum-GoalTileNum+2)*CellWidth16 {
+	if int(ps.playerEntity.LeftPositionX) >= (TileNum-GoalTileNum+2)*CellWidth33 {
 		ps.Remove(ps.playerEntity.BasicEntity)
 	}
 
@@ -105,7 +105,7 @@ func (ps *PlayerSystem) Update(dt float32) {
 				ps.playerEntity.LeftPositionX += MoveDistance
 				ps.playerEntity.RightPositionX += MoveDistance
 			}
-			if int(ps.playerEntity.SpaceComponent.Position.X) < TileNum*CellWidth16-int(engo.WindowWidth())/2 {
+			if int(ps.playerEntity.SpaceComponent.Position.X) < TileNum*CellWidth33-int(engo.WindowWidth())/2 {
 				engo.Mailbox.Dispatch(common.CameraMessage{
 					Axis:        common.XAxis,
 					Value:       MoveDistance,
@@ -114,6 +114,76 @@ func (ps *PlayerSystem) Update(dt float32) {
 			}
 			ps.playerEntity.cameraMoveDistance += MoveDistance
 		}
+		/*
+				for i := 0; i <= 13; i++ {
+					if ps.playerEntity.jumpCount == 0 {
+						ps.playerEntity.useCell++
+						ps.playerEntity.RenderComponent.Drawable = ps.playerEntity.spritesheet.Cell(PlayerSpriteSheetCell + ps.playerEntity.useCell)
+						if ps.playerEntity.useCell == 14 {
+							for j := 0; j <= 13; j-- {
+								if ps.playerEntity.useCell == 0 {
+									break
+								}
+								ps.playerEntity.useCell--
+								ps.playerEntity.RenderComponent.Drawable = ps.playerEntity.spritesheet.Cell(PlayerSpriteSheetCell + ps.playerEntity.useCell)
+							}
+						}
+					}
+				}
+			}
+		*/
+		if ps.playerEntity.jumpCount == 0 {
+			switch ps.playerEntity.useCell {
+			case 0:
+				ps.playerEntity.useCell = 3
+			case 1:
+				ps.playerEntity.useCell = 4
+			case 2:
+				ps.playerEntity.useCell = 5
+			case 3:
+				ps.playerEntity.useCell = 6
+			case 4:
+				ps.playerEntity.useCell = 7
+			case 5:
+				ps.playerEntity.useCell = 8
+			case 6:
+				ps.playerEntity.useCell = 9
+			case 7:
+				ps.playerEntity.useCell = 10
+			case 8:
+				ps.playerEntity.useCell = 12
+			case 9:
+				ps.playerEntity.useCell = 13
+			case 10:
+				ps.playerEntity.useCell = 14
+			case 11:
+				ps.playerEntity.useCell = 13
+			case 12:
+				ps.playerEntity.useCell = 12
+			case 13:
+				ps.playerEntity.useCell = 11
+			case 14:
+				ps.playerEntity.useCell = 10
+			case 15:
+				ps.playerEntity.useCell = 9
+			case 16:
+				ps.playerEntity.useCell = 8
+			case 17:
+				ps.playerEntity.useCell = 7
+			case 18:
+				ps.playerEntity.useCell = 6
+			case 19:
+				ps.playerEntity.useCell = 5
+			case 20:
+				ps.playerEntity.useCell = 4
+			case 21:
+				ps.playerEntity.useCell = 3
+			}
+		} else {
+			ps.playerEntity.useCell = 0
+		}
+
+		ps.playerEntity.RenderComponent.Drawable = ps.playerEntity.spritesheet.Cell(PlayerSpriteSheetCell + ps.playerEntity.useCell)
 	}
 
 	if engo.Input.Button("Jump").JustPressed() {

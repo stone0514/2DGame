@@ -15,12 +15,11 @@ type mySceane struct{}
 func (*mySceane) Type() string { return "myGame" }
 
 func (*mySceane) Preload() {
-	engo.Files.Load("./characters/robot.png")              //48x48
-	engo.Files.Load("./characters/robot2.png")             //64x64
+	engo.Files.Load("./characters/robot.png")              //64x64
 	engo.Files.Load("./tileSet/world/tileSpritesheet.png") //33x33
 	engo.Files.Load("./tileSet/world/spritesheet_sample.png")
 	engo.Files.Load("./tileSet/world/Background/clouds.png")
-	common.SetBackground(color.RGBA{210, 180, 140, 1})
+	common.SetBackground(color.RGBA{106, 90, 205, 1})
 }
 
 func (*mySceane) Setup(u engo.Updater) {
@@ -38,13 +37,13 @@ func (*mySceane) Setup(u engo.Updater) {
 
 func main() {
 	opts := engo.RunOptions{
-		Title:          "Hello World",
+		Title:          "Mr.Robot",
 		Width:          800,
-		Height:         600,
+		Height:         500,
 		StandardInputs: true,
 		NotResizable:   true,
 	}
-	fmt.Println("START AdventureGame")
+	fmt.Println("RUN!")
 	engo.Run(opts, &mySceane{})
 }
 
