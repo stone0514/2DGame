@@ -12,32 +12,44 @@ const (
 	TileNum           = 200
 	GoalTileNum       = 10
 	AroundGoalTileNum = 30
-	//tileSize 33x33
+	PipeTileNum       = 2
+	// tileSize 33x33
 	CellWidth33  = 33
 	CellHeight33 = 33
-	//cloudSize 99x60
+	// cloudSize 99x60
 	CellWidth99  = 99
 	CellHeight60 = 60
+	// PipeSize
+	CellWidth66  = 66
+	CellHeight66 = 66
+
 	CellWidth32  = 32
 	CellHeight32 = 32
 	CellHeight64 = 64
 	TileDepth    = 4
-	//tileSpriteSheet 28x27
+	// tileSpriteSheet 28x27
 	GroundSpriteSheetCell = 133
-	//cloudSpriteSheet 10x16?
+	// cloudSpriteSheet 10x16?
 	CloudSpriteSheetCell = 140
+	// pipeSpriteSheet
+	PipeSpriteSheetCell = 120
 )
 
 var (
 	tileFile = "./tileSet/world/tileSpritesheet.png"
 
 	FallPoint []int
+	PipePoint []int
 
 	//0: Not Making, 1:Making, 2:Other
 	makingFall  int
 	makingCloud int
+	makingPipe  int
 
 	addCell int
+
+	pipePositionY   float32
+	onPipePositionY float32
 )
 
 type Tile struct {
@@ -59,9 +71,13 @@ func (ts *TileSystem) New(w *ecs.World) {
 	ts.world = w
 	Spritesheet33x33 := common.NewSpritesheetWithBorderFromFile(tileFile, CellWidth33, CellHeight33, 0, 0)
 	Spritesheet99x66 := common.NewSpritesheetWithBorderFromFile(tileFile, CellWidth99, CellHeight60, 0, 0)
+	Spritesheet66x66 := common.NewSpritesheetWithBorderFromFile(tileFile, CellWidth66, CellHeight66, 0, 0)
 
 	addCell = 0
 	cloudHeight := 0
+
+	pipePositionY = engo.WindowHeight() - CellHeight33*6
+	onPipePositionY = engo.WindowHeight() - CellHeight33*8
 
 	makingFall = 0
 
@@ -141,6 +157,37 @@ func (ts *TileSystem) New(w *ecs.World) {
 				makingCloud = 0
 				addCell = 0
 				break
+			}
+		}
+	}
+
+	for i := 0; i <= TileNum; i++ {
+		makingPipe = 1
+		for j := 0; j < PipeTileNum+2; j++ {
+			if getMakingInfo(FallPoint, (i+j)*CellWidth33) {
+				makingPipe = 0
+			}
+		}
+		if i >= 10 && i < TileNum-AroundGoalTileNum {
+			if makingPipe != 0 {
+				tile := &Tile{BasicEntity: ecs.NewBasic()}
+
+				tile.SpaceComponent = common.SpaceComponent{
+					Position: engo.Point{X: float32(i * CellWidth33), Y: pipePositionY},
+				}
+
+				tile.RenderComponent = common.RenderComponent{
+					Drawable: Spritesheet66x66.Cell(PipeSpriteSheetCell),
+					Scale:    engo.Point{X: 1, Y: 1},
+				}
+				tile.RenderComponent.SetZIndex(0)
+
+				Tiles = append(Tiles, tile)
+
+				for j := 0; j < CellWidth66; j++ {
+					PipePoint = append(PipePoint, i*CellWidth33+j)
+				}
+				i = i + 10
 			}
 		}
 	}
