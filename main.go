@@ -19,6 +19,9 @@ func (*mySceane) Preload() {
 	engo.Files.Load("./tileSet/world/tileSpritesheet.png") //33x33
 	engo.Files.Load("./tileSet/world/spritesheet_sample.png")
 	engo.Files.Load("./tileSet/world/Background/clouds.png")
+	engo.Files.Load("./vehicle/vehicle-1.png")
+	engo.Files.Load("./vehicle/vehicle-2.png")
+	engo.Files.Load("./vehicle/vehicle-3.png")
 	common.SetBackground(color.RGBA{106, 90, 205, 1})
 }
 
