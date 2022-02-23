@@ -8,8 +8,8 @@ import (
 )
 
 const (
-	MoveDistance          = 4
-	JumpHeight            = 4
+	MoveDistance          = 6
+	JumpHeight            = 6
 	MaxCount              = 40
 	PlayerSpriteSheetCell = 0
 	ExtraSizeX            = 0
@@ -32,6 +32,7 @@ type Player struct {
 	topCount           int
 	bottomCount        int
 	ifJumping          bool
+	ifOnPipe           bool
 	ifFalling          bool
 }
 
@@ -58,7 +59,7 @@ func (ps *PlayerSystem) New(w *ecs.World) {
 		Drawable: player.spritesheet.Cell(PlayerSpriteSheetCell),
 		Scale:    engo.Point{X: 1, Y: 1},
 	}
-	player.RenderComponent.SetZIndex(0)
+	player.RenderComponent.SetZIndex(5)
 
 	ps.playerEntity = &player
 
@@ -66,6 +67,7 @@ func (ps *PlayerSystem) New(w *ecs.World) {
 	ps.playerEntity.LeftPositionX = PsPositionX + float32(ExtraSizeX)
 	ps.playerEntity.RightPositionX = PsPositionX + CellWidth32 - float32(ExtraSizeX)
 	ps.playerEntity.ifFalling = false
+	ps.playerEntity.ifOnPipe = false
 	ps.playerEntity.cameraMoveDistance = 0
 	ps.playerEntity.topCount = 1 + MaxCount/2
 	ps.playerEntity.bottomCount = 0
@@ -94,43 +96,34 @@ func (ps *PlayerSystem) Update(dt float32) {
 	}
 
 	if engo.Input.Button("MoveRight").Down() {
-		if int(ps.playerEntity.SpaceComponent.Position.X) < ps.playerEntity.cameraMoveDistance+int(engo.WindowWidth())/2 {
-			ps.playerEntity.SpaceComponent.Position.X += MoveDistance
-			ps.playerEntity.LeftPositionX += MoveDistance
-			ps.playerEntity.RightPositionX += MoveDistance
+		if getMakingInfo(PipePoint, int(ps.playerEntity.RightPositionX)) && int(ps.playerEntity.SpaceComponent.Position.Y) > int(engo.WindowHeight())-CellHeight33*8 {
 		} else {
-			if int(ps.playerEntity.SpaceComponent.Position.X) < int(engo.WindowWidth())-CellWidth32 {
+			if ps.playerEntity.ifOnPipe && ps.playerEntity.jumpCount == 0 {
+				if getMakingInfo(PipePoint, int(ps.playerEntity.LeftPositionX)) && !getMakingInfo(PipePoint, int(ps.playerEntity.RightPositionX)) {
+					ps.playerEntity.ifOnPipe = false
+					ps.playerEntity.SpaceComponent.Position.Y = ps.playerEntity.playerPositionY
+				}
+			}
+			if int(ps.playerEntity.SpaceComponent.Position.X) < ps.playerEntity.cameraMoveDistance+int(engo.WindowWidth())/2 {
 				ps.playerEntity.SpaceComponent.Position.X += MoveDistance
 				ps.playerEntity.LeftPositionX += MoveDistance
 				ps.playerEntity.RightPositionX += MoveDistance
-			}
-			if int(ps.playerEntity.SpaceComponent.Position.X) < TileNum*CellWidth33-int(engo.WindowWidth())/2 {
-				engo.Mailbox.Dispatch(common.CameraMessage{
-					Axis:        common.XAxis,
-					Value:       MoveDistance,
-					Incremental: true,
-				})
-			}
-			ps.playerEntity.cameraMoveDistance += MoveDistance
-		}
-		/*
-				for i := 0; i <= 13; i++ {
-					if ps.playerEntity.jumpCount == 0 {
-						ps.playerEntity.useCell++
-						ps.playerEntity.RenderComponent.Drawable = ps.playerEntity.spritesheet.Cell(PlayerSpriteSheetCell + ps.playerEntity.useCell)
-						if ps.playerEntity.useCell == 14 {
-							for j := 0; j <= 13; j-- {
-								if ps.playerEntity.useCell == 0 {
-									break
-								}
-								ps.playerEntity.useCell--
-								ps.playerEntity.RenderComponent.Drawable = ps.playerEntity.spritesheet.Cell(PlayerSpriteSheetCell + ps.playerEntity.useCell)
-							}
-						}
-					}
+			} else {
+				if int(ps.playerEntity.SpaceComponent.Position.X) < int(engo.WindowWidth())-CellWidth32 {
+					ps.playerEntity.SpaceComponent.Position.X += MoveDistance
+					ps.playerEntity.LeftPositionX += MoveDistance
+					ps.playerEntity.RightPositionX += MoveDistance
 				}
+				if int(ps.playerEntity.SpaceComponent.Position.X) < TileNum*CellWidth33-int(engo.WindowWidth())/2 {
+					engo.Mailbox.Dispatch(common.CameraMessage{
+						Axis:        common.XAxis,
+						Value:       MoveDistance,
+						Incremental: true,
+					})
+				}
+				ps.playerEntity.cameraMoveDistance += MoveDistance
 			}
-		*/
+		}
 		if ps.playerEntity.jumpCount == 0 {
 			switch ps.playerEntity.useCell {
 			case 0:
@@ -201,7 +194,11 @@ func (ps *PlayerSystem) Update(dt float32) {
 			ps.playerEntity.jumpCount = 1
 			ps.playerEntity.ifJumping = true
 		}
-		ps.playerEntity.bottomCount = 1 + MaxCount + ps.playerEntity.jumpCount2Step
+		if ps.playerEntity.ifOnPipe {
+			ps.playerEntity.bottomCount = 1 + MaxCount + ps.playerEntity.jumpCount2Step + 8
+		} else {
+			ps.playerEntity.bottomCount = 1 + MaxCount + ps.playerEntity.jumpCount2Step
+		}
 	}
 
 	if ps.playerEntity.jumpCount != 0 {
@@ -209,10 +206,25 @@ func (ps *PlayerSystem) Update(dt float32) {
 		if ps.playerEntity.jumpCount <= ps.playerEntity.topCount {
 			ps.playerEntity.SpaceComponent.Position.Y -= JumpHeight
 		} else if ps.playerEntity.jumpCount <= ps.playerEntity.bottomCount {
-			ps.playerEntity.SpaceComponent.Position.Y += JumpHeight
+			if ps.playerEntity.SpaceComponent.Position.Y == onPipePositionY {
+				if getMakingInfo(PipePoint, int(ps.playerEntity.LeftPositionX)) || getMakingInfo(PipePoint, int(ps.playerEntity.RightPositionX)) {
+					ps.playerEntity.jumpCount = 0
+					ps.playerEntity.ifJumping = false
+					ps.playerEntity.ifOnPipe = true
+				} else {
+					ps.playerEntity.SpaceComponent.Position.Y += JumpHeight
+				}
+			} else {
+				ps.playerEntity.SpaceComponent.Position.Y += JumpHeight
+			}
 		} else {
 			ps.playerEntity.jumpCount = 0
 			ps.playerEntity.ifJumping = false
+			if getMakingInfo(PipePoint, int(ps.playerEntity.LeftPositionX)) || getMakingInfo(PipePoint, int(ps.playerEntity.RightPositionX)) {
+				ps.playerEntity.ifOnPipe = true
+			} else {
+				ps.playerEntity.ifOnPipe = false
+			}
 		}
 	}
 

@@ -17,7 +17,7 @@ const (
 	CellWidth33  = 33
 	CellHeight33 = 33
 	// cloudSize 99x60
-	CellWidth99  = 99
+	CellWidth99  = 98
 	CellHeight60 = 60
 	// PipeSize
 	CellWidth66  = 66
