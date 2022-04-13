@@ -8,74 +8,57 @@ import (
 	"github.com/EngoEngine/engo/common"
 )
 
-const (
-	TileNum           = 200
-	GoalTileNum       = 10
-	AroundGoalTileNum = 30
-	PipeTileNum       = 2
-	// tileSize 33x33
-	CellWidth33  = 33
-	CellHeight33 = 33
-	// cloudSize 99x60
-	CellWidth99  = 98
-	CellHeight60 = 60
-	// PipeSize
-	CellWidth66  = 66
-	CellHeight66 = 66
-
-	CellWidth32  = 32
-	CellHeight32 = 32
-	CellHeight64 = 64
-	TileDepth    = 4
-	// tileSpriteSheet 28x27
-	GroundSpriteSheetCell = 133
-	// cloudSpriteSheet 10x16?
-	CloudSpriteSheetCell = 140
-	// pipeSpriteSheet
-	PipeSpriteSheetCell = 120
-)
-
 var (
 	tileFile = "./tileSet/world/tileSpritesheet.png"
-
+	//FallPoint ...
 	FallPoint []int
+	//PipePoint ...
 	PipePoint []int
-
 	//0: Not Making, 1:Making, 2:Other
-	makingFall  int
-	makingCloud int
-	makingPipe  int
-
-	addCell int
-
+	makingFall      int
+	makingCloud     int
+	makingPipe      int
+	addCell         int
 	pipePositionY   float32
 	onPipePositionY float32
 )
 
+//Tile ...
 type Tile struct {
 	ecs.BasicEntity
 	common.RenderComponent
 	common.SpaceComponent
 }
 
+//TileSystem ...
 type TileSystem struct {
 	world      *ecs.World
 	tileEntity []*Tile
 }
 
+//Update ...
+//update is ran every frame, with "dt" being the time
 func (*TileSystem) Update(dt float32) {}
 
+//Remove ...
+//remove is called whenever an entity is removed from the world ...
 func (*TileSystem) Remove(ecs.BasicEntity) {}
 
+//New ...
+//initialisation of the system
 func (ts *TileSystem) New(w *ecs.World) {
 	ts.world = w
+	//create tile spritesheet
 	Spritesheet33x33 := common.NewSpritesheetWithBorderFromFile(tileFile, CellWidth33, CellHeight33, 0, 0)
-	Spritesheet99x66 := common.NewSpritesheetWithBorderFromFile(tileFile, CellWidth99, CellHeight60, 0, 0)
+	//create cloud spritesheet
+	Spritesheet98x66 := common.NewSpritesheetWithBorderFromFile(tileFile, CellWidth98, CellHeight60, 0, 0)
+	//create pipe spritesheet
 	Spritesheet66x66 := common.NewSpritesheetWithBorderFromFile(tileFile, CellWidth66, CellHeight66, 0, 0)
 
 	addCell = 0
 	cloudHeight := 0
 
+	//initialize pipePosition
 	pipePositionY = engo.WindowHeight() - CellHeight33*6
 	onPipePositionY = engo.WindowHeight() - CellHeight33*8
 
@@ -84,6 +67,7 @@ func (ts *TileSystem) New(w *ecs.World) {
 	Tiles := make([]*Tile, 0)
 
 	for i := 0; i <= TileNum; i++ {
+		//create ground
 		if i >= 10 && i < TileNum-AroundGoalTileNum {
 			randomNum := rand.Intn(10)
 			if randomNum == 0 {
@@ -98,24 +82,29 @@ func (ts *TileSystem) New(w *ecs.World) {
 		}
 		if makingFall != 0 {
 			for j := 0; j < CellWidth33; j++ {
+				//fallpoint position record
 				FallPoint = append(FallPoint, i*CellWidth33+j)
 			}
 		} else {
 			for j := 0; j < TileDepth; j++ {
 				tile := &Tile{BasicEntity: ecs.NewBasic()}
 
+				//spaceComponent
 				tile.SpaceComponent = common.SpaceComponent{
 					Position: engo.Point{X: float32(i * CellWidth33), Y: float32(int(engo.WindowHeight()) - (j+1)*CellHeight33)},
 				}
+				//renderComponent
 				tile.RenderComponent = common.RenderComponent{
 					Drawable: Spritesheet33x33.Cell(GroundSpriteSheetCell),
 					Scale:    engo.Point{X: 1, Y: 1},
 				}
 				tile.RenderComponent.SetZIndex(0)
 
+				//set component
 				Tiles = append(Tiles, tile)
 			}
 		}
+		//create cloud
 		if makingCloud == 0 {
 			randomNum := rand.Intn(12)
 			if randomNum < 3 {
@@ -126,22 +115,26 @@ func (ts *TileSystem) New(w *ecs.World) {
 		if makingCloud != 0 {
 			tile := &Tile{BasicEntity: ecs.NewBasic()}
 			j := float32(0)
+			//creating second cloud
 			if makingCloud > 2 {
 				j = float32(i) - 0.7
 			} else {
 				j = float32(i)
 			}
 
+			//spaceComponent
 			tile.SpaceComponent = common.SpaceComponent{
-				Position: engo.Point{X: float32(j * CellWidth99), Y: float32(int(engo.WindowHeight()/3) - cloudHeight*CellHeight60)},
+				Position: engo.Point{X: float32(j * CellWidth98), Y: float32(int(engo.WindowHeight()/3) - cloudHeight*CellHeight60)},
 			}
 
+			//renderComponent
 			tile.RenderComponent = common.RenderComponent{
-				Drawable: Spritesheet99x66.Cell(CloudSpriteSheetCell),
+				Drawable: Spritesheet98x66.Cell(CloudSpriteSheetCell),
 				Scale:    engo.Point{X: 1, Y: 1},
 			}
 			tile.RenderComponent.SetZIndex(float32(makingCloud))
 
+			//set component
 			Tiles = append(Tiles, tile)
 
 			switch makingCloud {
@@ -161,10 +154,11 @@ func (ts *TileSystem) New(w *ecs.World) {
 		}
 	}
 
+	//create pipePosition
 	for i := 0; i <= TileNum; i++ {
 		makingPipe = 1
 		for j := 0; j < PipeTileNum+2; j++ {
-			if getMakingInfo(FallPoint, (i+j)*CellWidth33) {
+			if GetMakingInfo(FallPoint, (i+j)*CellWidth33) {
 				makingPipe = 0
 			}
 		}
@@ -172,21 +166,26 @@ func (ts *TileSystem) New(w *ecs.World) {
 			if makingPipe != 0 {
 				tile := &Tile{BasicEntity: ecs.NewBasic()}
 
+				//spaceComponent
 				tile.SpaceComponent = common.SpaceComponent{
 					Position: engo.Point{X: float32(i * CellWidth33), Y: pipePositionY},
 				}
 
+				//renderComponent
 				tile.RenderComponent = common.RenderComponent{
 					Drawable: Spritesheet66x66.Cell(PipeSpriteSheetCell),
 					Scale:    engo.Point{X: 1, Y: 1},
 				}
 				tile.RenderComponent.SetZIndex(0)
 
+				//set component
 				Tiles = append(Tiles, tile)
 
+				//record pipePosition
 				for j := 0; j < CellWidth66; j++ {
 					PipePoint = append(PipePoint, i*CellWidth33+j)
 				}
+				//increment
 				i = i + 10
 			}
 		}
@@ -201,13 +200,4 @@ func (ts *TileSystem) New(w *ecs.World) {
 			}
 		}
 	}
-}
-
-func getMakingInfo(s []int, e int) bool {
-	for _, v := range s {
-		if e == v {
-			return true
-		}
-	}
-	return false
 }
